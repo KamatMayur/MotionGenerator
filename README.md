@@ -23,16 +23,15 @@ This project explores various deep learning techniques to generate 3D skeletal a
 ## Installation
 
 To set up the environment for this project, follow these steps:
-
-1. **Create and Activate the Conda Environment**
+1. **Clone the repo**
 2. **Change directory to the projects root directory**
 
-3. **First, create a new Conda environment with Python 3.12:**
+3. **Create a new Conda environment with Python 3.12:**
 
    ```bash
    conda create --name myenv python=3.12
    ```
-   
+      
 4. **Then, activate the environment:**
    ```bash
    conda activate myenv
