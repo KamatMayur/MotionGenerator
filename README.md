@@ -1,6 +1,6 @@
-# 3D Skeletal Animation Generator
+# Motion Generator 
 
-Welcome to the 3D Skeletal Animation Generator repository! This project aims to create deep learning models to generate 3D skeletal animations, focusing on creating realistic and fluid motion sequences for various applications in computer graphics, gaming, and virtual reality.
+Welcome to the Motion Generator repository! This project aims to create deep learning models to generate 3D skeletal animations, focusing on creating realistic and fluid motion sequences for various applications in computer graphics, gaming, and virtual reality.
 
 ## Table of Contents
 
