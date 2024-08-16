@@ -70,31 +70,44 @@ def plot_frame_sequence(global_poses, main_bone_indices, parent_indices,
     ax = fig.add_subplot(111, projection='3d')
 
     num_frames = global_poses.shape[0]
+    root_index = main_bone_indices[0]  # Assuming the root is the first in main_bone_indices
 
-    
-    for frame_index in range(0, num_frames):
+    for frame_index in range(num_frames):
         # Extract positions from global transformations
         positions = global_poses[frame_index, :, :3, 3]
+        rotations = global_poses[frame_index, :, :3, :3]
         alpha = frame_index / num_frames
+
         for i in main_bone_indices:
             if parent_indices[i] != -1:
                 parent_pos = positions[parent_indices[i]]
                 ax.plot([positions[i][0], parent_pos[0]], [positions[i][1], parent_pos[1]], [positions[i][2], parent_pos[2]],
                         linestyle=line_style, color=line_color, alpha=alpha,
                         marker=marker_style, markersize=marker_size, markerfacecolor=marker_color)
-                
+
+        # Plot arrow for the root position
+        root_pos = positions[root_index]
+        root_x_dir = rotations[root_index, :, 1]  # Extract y direction of root rotation
+        ax.quiver(root_pos[0], root_pos[1], root_pos[2],
+                  root_x_dir[0], root_x_dir[1], root_x_dir[2],
+                  color='r', length=0.1, normalize=True, arrow_length_ratio=0.1, linewidth=2)
 
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
 
-    center_x = (np.max(global_poses[:, :, :3, 3]) + np.min(global_poses[:, :, :3, 3])) / 2
-    center_y = (np.max(global_poses[:, :, :3, 3]) + np.min(global_poses[:, :, :3, 3])) / 2
+    # Calculate the center and set limits
+    all_positions = global_poses[:, :, :3, 3].reshape(-1, 3)
+    center_x = (np.max(all_positions[:, 0]) + np.min(all_positions[:, 0])) / 2
+    center_y = (np.max(all_positions[:, 1]) + np.min(all_positions[:, 1])) / 2
+    center_z = (np.max(all_positions[:, 2]) + np.min(all_positions[:, 2])) / 2
+    max_range = max(np.ptp(all_positions[:, 0]), np.ptp(all_positions[:, 1]), np.ptp(all_positions[:, 2]))
 
-    ax.set_xlim([center_x-2, center_x+2])
-    ax.set_ylim([center_y-2, center_y+2])
-    ax.set_zlim([0,2])
-    ax.set_aspect("equal")
+    ax.set_xlim([center_x - max_range / 2, center_x + max_range / 2])
+    ax.set_ylim([center_y - max_range / 2, center_y + max_range / 2])
+    ax.set_zlim([center_z - max_range / 2, center_z + max_range / 2])
+    ax.set_aspect('auto')
+
     plt.show()
 
 def load_animation(file_path, rest_pose, parent_indices):
@@ -103,6 +116,8 @@ def load_animation(file_path, rest_pose, parent_indices):
         data = json.load(f)
     poses = np.array(data['Frames']).transpose(0, 1, 3, 2)[30:]
 
+
+    # Positions are scaled down from centimeters to meters
     poses[:, :, :3, 3] *= 0.01
 
 
@@ -145,6 +160,8 @@ def load_skeleton(file_path):
     bone_index_map = {bone: bone_names.index(bone) for bone in MAIN_BONES if bone in bone_names}
     main_bone_indices = np.array(list(bone_index_map.values()))
     bone_transforms = np.array(data['BoneTransforms']).transpose(0,2,1)
+
+    # Positions are scaled down from centimeters to meters
     bone_transforms[:, :3, 3] *= 0.01
  
 
@@ -164,8 +181,6 @@ def get_joint_velocitites(root_rel_poses, main_bone_indices, fps):
     joint_velocities[1:] = np.diff(joint_positions, axis=0) * fps
     return joint_velocities[:, 1:]
 
-
-
 def main():
     animation_folder_path = Path("animations")
     skeleton_path = "skeleton/SK_UEFN_Mannequin.json"
@@ -181,7 +196,7 @@ def main():
     root_transforms = np.zeros((0, 4,4))
     joint_transforms = np.zeros((0, len(main_bone_indices)-1, 4, 4))
 
-    for animation in animation_files:
+    for animation in animation_files[4:]:
         rest_rel_local_poses, global_poses, root_rel_poses = load_animation(animation, rest_pose, parent_indices)
 
         root_vels = get_root_velocities(global_poses, 30)
@@ -201,12 +216,12 @@ def main():
                     ])
     
 
-    ## UNCOMMENT TO SAVE: BE CAREFUL AS IT MIGHT OVERWRITE THE EXISTING DATA
-    # np.save(data_path + "root_velocities.npy", root_velocities.astype(np.float32))
-    # np.save(data_path + "joint_velocities.npy", joint_velocities.astype(np.float32))
-    # np.save(data_path + "root_transforms.npy", root_transforms.astype(np.float32))
-    # np.save(data_path + "joint_transforms.npy", joint_transforms.astype(np.float32))
-    # np.save(data_path + "parent_indices.npy", parent_indices.astype(np.int8))
+    # UNCOMMENT TO SAVE: BE CAREFUL AS IT MIGHT OVERWRITE THE EXISTING DATA
+    np.save(data_path + "root_velocities.npy", root_velocities.astype(np.float32))
+    np.save(data_path + "joint_velocities.npy", joint_velocities.astype(np.float32))
+    np.save(data_path + "root_transforms.npy", root_transforms.astype(np.float32))
+    np.save(data_path + "joint_transforms.npy", joint_transforms.astype(np.float32))
+    np.save(data_path + "parent_indices.npy", parent_indices.astype(np.int8))
 
 
 if __name__ == '__main__':

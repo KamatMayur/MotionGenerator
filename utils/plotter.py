@@ -4,8 +4,8 @@ from matplotlib.animation import FuncAnimation
 import numpy as np
 
 def plot_frame_sequence(ax, positions, parent_indices, center,
-                        line_style='-', line_color=("g", "r"),
-                        marker_style='o', marker_color=("g", "r"), marker_size=3):
+                        line_style='-', line_color=("r", "g"),
+                        marker_style='o', marker_color=("r", "g"), marker_size=3):
    
     num_frames = positions.shape[0]
     num_bones = positions.shape[1]

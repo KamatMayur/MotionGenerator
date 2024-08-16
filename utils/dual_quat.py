@@ -272,14 +272,67 @@ def dqinv(dq: torch.Tensor) -> torch.Tensor:
     dq_inv = torch.cat((q_r_inv, q_d_inv), dim=-1)
 
     return dq_inv
+
     
+def dqnorm(dq):
+        """
+        This function enforces the unitary conditions for valid dual quaternions:
+        1. The real part should have a norm of 1.
+        2. The real and the dual parts should be orthogonal.
 
-# import numpy as np
-# t =  torch.tensor(np.load(r"c:\Users\mayur\Documents\Unreal Projects\DLCharacterControl\PythonTests\data\joint_transforms.npy"))
+        Parameters:
+            dq (torch.Tensor): A tensor containing dual quaternions of shape(..., 8). 
+                            The first 4 components are for the real quaternion, and the remaining 4 are for the 
+                            dual quaternion.
 
-# t = t[5, 5]
+        Returns:
+            torch.Tensor: The normalized quaternion.
+        """
 
-# print(mat2dq(t))
+        real = dq[..., :4]  # (batch_size, num_frames, num_bones, 4)
+        dual = dq[..., 4:]  # (batch_size, num_frames, num_bones, 4)
 
-# print(torch.inverse(t))
-# print(dq2mat(dqinv(mat2dq(t))))
+        # Normalize the real part
+        real_norm = torch.norm(real, dim=-1, keepdim=True)
+        real_normalized = real / real_norm
+
+        # Project the dual part onto the real part
+        real_dot_dual = torch.sum(real_normalized * dual, dim=-1, keepdim=True)  # (batch_size, num_frames, num_bones, 1)
+        
+        # Orthogonalize the dual part if necessary
+        dual_orthogonal = dual - real_dot_dual * real_normalized
+
+        dual_orthonormal = F.normalize(dual_orthogonal, dim=-1)
+
+        # Scaling the dual part to have the original magnitude
+        dual_orthogonal = dual_orthonormal * torch.norm(dual, dim=-1, keepdim=True)
+    
+        # Combine the normalized real and dual parts
+        normalized_dq = torch.cat([real_normalized, dual_orthogonal], dim=-1)
+
+        return normalized_dq
+
+
+def dqeye(*shape):
+    """
+    Generate an identity dual quaternion tensor with the given shape, 
+    where the last dimension is fixed at 8.
+
+    Parameters:
+    shape (tuple): The first n-1 dimensions of the desired output tensor.
+
+    Returns:
+    torch.Tensor: A tensor of identity dual quaternions with shape (*shape, 8).
+    """
+    # Create a tensor of zeros with the desired shape and last dimension 8
+    identity_dq = torch.zeros(*shape, 8)
+    
+    # Set the first element of the last dimension (real part of the quaternion) to 1
+    identity_dq[..., 0] = 1
+    
+    return identity_dq
+
+# t =  torch.rand(32, 3, 5, 8)
+
+
+# print(dqnorm(t).shape)
